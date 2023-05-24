@@ -1,0 +1,214 @@
+import win32com.client
+import pythoncom
+from time import sleep
+import pyautocad
+
+
+acad = win32com.client.dynamic.Dispatch("AutoCAD.Application")
+doc = acad.ActiveDocument
+ms = doc.ModelSpace
+acad.Visible = 1
+""" Passing and Obtaining Python Objects from COM>>> The functions below must be used before passing to ACTIVE X Command.
+            ie Active X only understands the values below only"""
+
+
+def vtpt(x, y, z=0):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, (x, y, z))
+    """Converts to COM recognized type Float"""
+def vtobj(obj):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, obj)
+    """Converts to COM recognized type Dispatch Object(Object of Application)"""
+def vtFloat(lis):
+    """ list converted to floating points"""
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, lis)
+def vtint(val):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, val)
+    """Converts to COM recognized type Integer"""
+def vtvariant(var):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, var)
+    """Converts to COM recognized type Variant(that lies under application object(Like:Circle, Line...))"""
+# Convert pt to vtpt
+def pt_vtpt(pt):
+    if len(pt) == 2:
+        return vtpt(pt[0], pt[1])
+    else:
+        return vtpt(pt[0], pt[1], pt[2])
+# Polar function by giving point, angle, distance & Return 3D point(z=0)
+def polar(p, a, d):
+    x = p[0] + d * math.cos(a)
+    y = p[1] + d * math.sin(a)
+    return [x, y, 0.0]
+# Distance function by giving 2D point1, point2
+def distance(p, q):
+    dx = p[0] - q[0]
+    dy = p[1] - q[1]
+    return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
+# Angle function by giving 2D point1, point2
+def angle(p, q):
+    dx = q[0] - p[0]
+    dy = q[1] - p[1]
+    return math.atan2(dy, dx)
+# Compute boundary of giving Line entity & buffer
+def line_bounds(e, b):
+    al = e.Angle + pi * 0.5
+    ar = e.Angle - pi * 0.5
+    p1 = e.StartPoint
+    p2 = e.EndPoint
+    p11 = polar(p1, al, b)
+    p12 = polar(p1, ar, b)
+    p21 = polar(p2, al, b)
+    p22 = polar(p2, ar, b)
+    return [p11, p12, p22, p21, p11]
+# Checking layer exist or not
+def layerexist(lay):
+    layers = doc.Layers
+    print(type(layers))
+    layers_nums = layers.Count
+    layers_names = [layers.Item(i).Name for i in range(layers_nums)]  # List of ACAD layers
+    if lay in layers_names:
+        return True;
+    else:
+        return False;
+#Creation of Selection Set Object
+
+# Create point
+def make_point(pt, lay="0"):
+    pointObj = ms.AddPoint(pt_vtpt(pt))
+    # if not layerexist(lay):
+    #     doc.Layers.Add(lay)
+    # pointObj.Layer = lay
+    return pointObj
+# Create line
+def make_line(p1, p2, lay="0"):
+    lineObj = ms.AddLine(pt_vtpt(p1), pt_vtpt(p2))
+    if not layerexist(lay):
+        doc.Layers.Add(lay)
+    lineObj.Layer = lay
+    return lineObj
+# Create polyline
+def make_pline(pts, lay):
+    plineObj = ms.AddPolyline(vtFloat(pts2pnts(pts)))
+    if not layerexist(lay):
+        doc.Layers.Add(lay)
+    plineObj.Layer = lay
+    return plineObj
+# Create circle
+def make_circle(pt, r, lay):
+    circleObj = ms.AddCircle(pt_vtpt(pt), r)
+    if not layerexist(lay):
+        doc.Layers.Add(lay)
+    circleObj.Layer = lay
+# Create Text
+def ptxt(txt, pt, ht, lay):
+    textObj = ms.AddText(txt, pt_vtpt(pt), ht)
+    if not layerexist(lay):
+        doc.Layers.Add(lay)
+    textObj.Layer = lay
+    return textObj
+# Prompt on Python & AutoCAD window
+def pycad_prompt(msg):
+    print(msg)
+    doc.Utility.Prompt(msg + '\n')
+#Selecting the Objets by Window Crossing Returns selection of Objects
+def select_crossing(point1, point2, name = "Item" ):
+    try:
+        doc.SelectionSets.Item(name).Delete()
+    except:
+        print("Delete selection failed")
+    selection = doc.SelectionSets.Add(name)
+    selection.Select(1, pt_vtpt(point1), pt_vtpt(point2))
+    return selection
+# Grouping of Selection Items
+def group_selection(selection_object, name = "Group"):
+    try:
+        doc.Groups.Item(name).Delete()
+        print("Deletedhurra")
+    except:
+        print("Delete selection failed")
+    group = doc.Groups.Add(name)
+    group_items = [i for i in selection_object]
+    group.AppendItems(vtobj(group_items))
+    return group
+#Moving Entire Group Components
+def group_copy(group, point1, point2):
+    items_list = [i for i in group]
+    for i in range(len(items_list)):
+        item=items_list[i].Copy()
+        item.Move(pt_vtpt(point1), pt_vtpt(point2))
+
+"""#""""""""""""*********""""""""""Automation Starts From Here""""""""****************""""""""""""""""""""""""""""#"""
+bays_number = 4
+bay_spacing_1 = 3
+bay_spacing_2 = 3
+bay_spacing_3 = 3
+storey_number = 3
+template_X = -1000
+template_Y = 0
+design_X = 1000
+design_Y = 0
+col_item_height = 2.40
+columns_number = bays_number + 1
+beams_number = storey_number + 1                     #Along the storey including plinth beam
+col_width = 0.45
+
+# ##############Column Automation Region##############
+#Column Selection Rectangular data
+height, width = 4, 1
+Y_value = 1
+
+for h in range(beams_number):
+    for i in range(columns_number):
+        if i == 0: index =2
+        elif i == columns_number-1: index = 1
+        else: index = 3
+
+        #Selectionn Points
+        sp1 = [template_X - ((index-1)*10 + 1), Y_value]
+        sp2 = [sp1[0] - width, sp1[1] + height]
+        sel_obj = select_crossing(sp1,sp2)
+        grp_obj = group_selection(sel_obj)
+
+        #Move Points
+        mp1 = [sp1[0]-col_width, sp1[1]]
+        mp2 = [design_X + (i*bay_spacing_1), h*col_item_height]        #(i*bay_spacing_1) Should be placed according to spacing later
+        group_copy(grp_obj,mp1, mp2)
+        print(h,i)
+        try:            grp_obj.Delete()
+        except: pass
+
+##############Beams Automation Region##############
+# Beams Ends Under Column
+# Selection Rectangular data
+height, width = 4, 1
+Y_value = 20
+initial_y = 1.2229
+column_height = 2.3134
+spacing_y = (column_height - initial_y) + (col_item_height - column_height) + initial_y
+buffer = 0.0002
+for h in range(beams_number):
+    if h ==0:
+        y = initial_y
+    else:
+        y = initial_y + h*spacing_y
+    for i in range(columns_number):
+        if i == 0: index =1
+        elif i == columns_number-1: index = 3
+        else: index = 2
+
+        #Selectionn Points
+        sp1 = [template_X - index - buffer, 1 + Y_value]
+        sp2 = [sp1[0] - width + 2*buffer, sp1[1] + height]
+        sel_obj = select_crossing(sp1,sp2)
+        grp_obj = group_selection(sel_obj)
+
+        #Move Points
+        mp1 = [sp1[0] - 1, sp1[1]]
+        mp2 = [design_X + (i*bay_spacing_1), y]             #(i*bay_spacing_1) Should be placed according to spacing later
+        group_copy(grp_obj,mp1, mp2)
+        print(h,i)
+        try:            grp_obj.Delete()
+        except: pass
+
+
+
+#

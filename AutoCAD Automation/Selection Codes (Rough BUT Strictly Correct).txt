@@ -1,0 +1,156 @@
+#View Reference From : https://blog.krybot.com/a?ID=01250-3b0b68ff-6683-4106-b753-0d7035a20f6c
+
+# p1 = APoint(10, 10)
+# l1 = acad.model.AddLine(APoint(100,100), APoint(300, 350))
+# for i in range(5):
+#     obj = acad.model.AddText(u'Hi %s!' % i, p1, 2.5)
+#     p1.y += 10
+
+
+#
+# import win32com.client
+from pyautocad import Autocad
+# import os
+#
+# folder = r'C:\Users\Nolaraj Poudel\Desktop'
+# filename = 'Autocad Automation.dwg'
+# drawing_file = os.path.join(folder, filename)
+# acad32 = win32com.client.dynamic.Dispatch("AutoCAD.Application")
+# doc = acad32.Documents.Open(drawing_file)
+# acadpy = Autocad()
+# entities = [acadpy.best_interface(obj) for obj in  acadpy.iter_objects()]
+#
+#
+# for obj in doc.Modelspace:
+#
+#     for lyt in doc.Layouts:
+#         for obj in lyt.Block:
+#             for blk in doc.Blocks:
+#                 for obj in blk:
+#                     print(obj.type)
+
+# for items in acad.iter_objects():
+#     print(items.Objectname)
+
+# from pyautocad import *
+#
+# acad = Autocad()
+# # acadModel = acad.ActiveDocument.Modelspace
+# # ss = pyautocad.
+# # acadModel.Select
+
+
+
+
+
+
+
+import win32com.client
+import win32com.client
+import pyautocad
+import pythoncom
+from time import sleep
+acad = win32com.client.Dispatch("AutoCAD.Application")
+
+doc = acad.ActiveDocument
+print((doc.Name))
+
+# AcadApp = win32com.client.Dispatch("AutoCAD.Application.19")
+ModelSpace = doc.ModelSpace
+doc.Utility.Prompt("l")
+
+Documents = acad.Documents
+
+print(type(doc.SelectionSets))
+
+# ssetObj = AcadSelectionSet()
+#
+try:
+    for i in doc.SelectionSets:
+        i.Delete()
+except:
+    pass
+# slt = acad.ActiveDocument.SelectionSets.Add('bcvferv3')
+# 在屏幕上选择对象，并加入到选择集中c
+
+pointsArray = [0,0,  0, 1000, 0, 0, 1000, 1000,  0,0, 1000, 0]
+
+# # pointsArray[12] = 2.2
+# print(pointsArray)
+# # mode = acSelectionSetWindowPolygon
+# slt.Select(5)#, pointsArray)
+#
+# # acad.prompt("line")
+# objSS = doc.SelectionSets.Add("toErase")
+#
+# FilterType = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, [0])
+# FilterData = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, ['INSERT'])
+# SELECT_ALL = 5
+#
+# objSS.Select(SELECT_ALL, pythoncom.Empty, pythoncom.Empty, FilterType, FilterData)
+
+# mode  = acSelectionSetCrossing
+def POINT(x,y,z):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, (x,y,z))
+
+a = POINT(0,0,0)
+b = POINT(1000,1000,0)
+
+# slt.Select(1,a,b)
+
+#
+# objSS = doc.SelectionSets.Add("blocks")
+#
+FilterType = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, [0])
+FilterData = win32com.client.VARIANT(
+    pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, ['INSERT'])
+# SELECT_ALL = 5
+#
+# objSS.Select(SELECT_ALL, pythoncom.Empty,
+#              pythoncom.Empty, FilterType, FilterData)
+
+slset = doc.SelectionSets.Add(0)
+
+# filterType = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_I2, ftyp)
+# filterData = win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_VARIANT, ftdt)
+
+
+
+
+
+
+def vtFloat(lis):
+    """ list converted to floating points"""
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, lis)
+
+pointsArray =vtFloat(pointsArray)
+# slset.Select(5, 0, 0, FilterType, FilterData)  # Select all with filtering
+# print(dir(slset.SelectByPolygon.mode))
+
+slset.SelectByPolygon(6 , pointsArray, FilterType, FilterData)  # Select all with filtering
+
+# print('{} entities have been selected.'.format(slset.count))
+val = 1
+code = 8
+doc.Layers.Add(val)
+
+codedict = {0:['Text', 'Line', 'Circle'], 1:['TextString', None, None], 8:['Layer', 'Layer', 'Layer'],
+            40:['Height', None, 'Radius'], 50:['Rotation', None, None], 62:['Color', 'Color', 'Color']}
+
+for e in slset:
+    # print(dir(e))
+    # etype = e.EntityName.replace('AcDb', '')
+    print(e.EntityName)
+    etype = e.EntityName[4:]  # EntityName = 'AcDbCircle'
+    print(etype)
+    try:
+        setattr(e, codedict[code][codedict[0].index(etype)], val)  # Assign val to e.variable
+        i += 1
+    except:
+        # print('{} can not be changed'.format(codedict[code][codedict[0].index(etype)]))
+        print('{}: can not be changed by code = {}'.format(etype, code))
+# pycad_prompt('Number of entities {}/{} have been changed.'.format(i, slset.count))
+
+
+
+

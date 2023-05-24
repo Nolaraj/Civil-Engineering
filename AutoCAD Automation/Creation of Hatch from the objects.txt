@@ -1,0 +1,61 @@
+import win32com.client
+import pythoncom
+import math
+from math import pi
+import pyautocad
+
+
+acad = win32com.client.Dispatch("AutoCAD.Application")
+acadModel = acad.ActiveDocument.ModelSpace
+
+def variants(object):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_DISPATCH, (object))
+
+
+# Convert pt to vtpt
+def pt_vtpt(pt):
+    if len(pt)==2:
+        return vtpt(pt[0], pt[1])
+    else:
+        return vtpt(pt[0], pt[1], pt[2])
+def make_point(pt, lay):
+    pointObj = acadModel.AddPoint(pt_vtpt(pt))
+    # if not layerexist(lay):
+    #     doc.Layers.Add(lay)
+    pointObj.Layer = lay
+    return pointObj
+
+def vtpt(x, y, z=0):
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, (x, y, z))
+    """Converts to COM recognized type Float"""
+def vtFloat(lis):
+    """ list converted to floating points"""
+    return win32com.client.VARIANT(pythoncom.VT_ARRAY | pythoncom.VT_R8, lis)
+
+out_loop = []
+# arc = acadModel.AddArc(make_point((0, 500, 0), "0"), 500, 90*pi/180, 270*pi/180)
+
+def make_line(p1, p2, lay):
+    lineObj = acadModel.AddLine(pt_vtpt(p1), pt_vtpt(p2))
+    # if not layerexist(lay):
+    #     doc.Layers.Add(lay)
+    lineObj.Layer = lay
+    return lineObj
+
+
+
+"""Creating Objects for Hatching inside it"""
+sq = acadModel.AddPolyline(vtFloat([0,0,0,100,0,0,1000,1000,0,0,1000,0]))
+line = make_line((0,0,0),(1000,1000,0),"0")
+
+
+"""Appending Objects for Hatching Boundary"""
+out_loop.append(sq)
+out_loop.append(line)
+
+print(out_loop)
+"""Converting Objects to the variants and Hatching those using variants"""
+outer = variants(out_loop)
+hatch = acadModel.AddHatch(0, "ANSI37", True)
+hatch.AppendOuterLoop(outer)
+
