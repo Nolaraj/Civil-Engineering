@@ -3,26 +3,32 @@ import os
 from math import *
 from openpyxl import *
 import openpyxl
-
-
+import matplotlib.pyplot as plt
+import numpy as np
 
 '''Input Region, Values are provided in m, KN'''
+##Characteristic Strengths of concrete and Steel in MPa
 fck = 20
 fy = 500
 #For Section
+#Outer diameters of hollow circular sections in m
 outer_dias = [2, 3 , 4, 5]   #Outer Diameter can be added in any numbers
+#Thickess of hollow section (Inner dia  =Outer dia - thickness), If hollow  = False, The section is solid
 t = 0.75
 hollow = True
 str_increment = 0.25
 
 #For Reinforcements (mm)
 #Outer Layer data
+#Rebar diameter and number of rebar layers along other part of section
 d_outer = 32
 number_outer = 1
+#Effective cover for section (mm)
 eff_cover = 100
 inner_layer = True
 
 #Inner Layer Data
+#Inner layer parameters (rebar diameter and number of layers)
 d_inner = d_outer
 number_inner = 4
 
@@ -201,6 +207,7 @@ for number in range(len(outer_dias)):
         e = (sum_M / sum_P) - R
         Force = sum_P
         Moment = abs(sum_P * e)
+
         # Excel Writing for the data extracted
         f_result = "PM Data.xlsx"
         sheet = "Result"
@@ -268,8 +275,23 @@ for number in range(len(outer_dias)):
     xvalues = openpyxl.chart.Reference(ws, min_col= 5 , min_row=6 + total_rows*number, max_row=sn + 4 + total_rows*number)
     values = openpyxl.chart.Reference(ws, min_col= 4 , min_row=6  + total_rows*number, max_row=sn + 4 + total_rows*number)
     series = openpyxl.chart.Series(values, xvalues, title_from_data=False)
+
+
+
     chart.series.append(series)
+
+    XMag = []
+    YMag = []
+    for row in range(6 + total_rows*number, sn + 4 + total_rows*number):
+        XMag.append(ws.cell(column = 5, row = row).value)
+        YMag.append(ws.cell(column = 4, row = row).value)
+    XMag = np.array(XMag)
+    YMag = np.array(YMag)
+    plt.plot(XMag, YMag)
+    plt.show()
 
 ws.add_chart(chart, "H8")
 
 wb.save(filename=f_result)
+
+print(os.getcwd())
